@@ -262,11 +262,9 @@ function pack(fmt, fmt_index, args, arg_index)
 				in_tbl = keys
 			end
 			
-			local value = args[arg_index]
-
-			table.insert(in_tbl, value)
-			
 			fmt_index, arg_index, new_value, data = pack(fmt, fmt_index + 1, args, arg_index)
+			
+			table.insert(in_tbl, new_value)
 			
 			table.insert(buffer, data)
 			
