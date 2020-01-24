@@ -1,7 +1,7 @@
 local old_pack, old_unpack = string.pack, string.unpack
 local pack, unpack
 
-function skip(fmt, pos)
+function skip_node(fmt, pos)
 	if fmt:find("^%}", pos) then
 		error("skip fail")
 	end
@@ -59,46 +59,39 @@ function check_key(data_key, fmt_key, index)
 	return false, index + 1
 end
 
-function unpack_node(fmt, data, i, pos, stack, data_key, count, tree)
+function unpack_node(fmt, data, i, fmt_index, stack, data_key, count, tree)
 	local index = 1
-	local skip_rest
+	local skip_rest = (count == 0)
 	local key_found = false
 	local value
 	
 	repeat
-		local fmt_key = fmt:match("^([^:,(){}[%]]+):", pos)
-		
-		if fmt_key then
-			pos = pos + #fmt_key + 1
-		end
-		
-		local new_pos
-		
-		if count == 0 then
-			skip_rest = true
-			if tree then
-				table.insert(stack, {})
-			end
-		end
-		
 		if not skip_rest then
+			local fmt_key = fmt:match("^([^:,(){}[%]]+):", fmt_index)
+			
+			if fmt_key then
+				fmt_index = fmt_index + #fmt_key + 1
+			end
+			
 			key_found, index = check_key(data_key, fmt_key, index)
 		end
+		
+		local new_fmt_index
 				
 		if skip_rest or not key_found then
-			new_pos = skip(fmt, pos)
+			new_fmt_index = skip_node(fmt, fmt_index)
 		else
 			if tree then
 				if not count then
 					local new_stack
-					new_pos, new_stack, i, value = unpack(fmt, data, i, pos, tree)
+					new_fmt_index, new_stack, i, value = unpack(fmt, data, i, fmt_index, tree)
 					table.insert(stack, new_stack)
 				else
 					local stack_array = {}
 				
 					for _ = 1, count do
 						local new_stack
-						new_pos, new_stack, i, value = unpack(fmt, data, i, pos, tree)
+						new_fmt_index, new_stack, i, value = unpack(fmt, data, i, fmt_index, tree)
 						table.insert(stack_array, new_stack)
 					end
 					
@@ -107,17 +100,21 @@ function unpack_node(fmt, data, i, pos, stack, data_key, count, tree)
 			else
 				for _ = 1, (count or 1) do
 					local new_stack
-					new_pos, new_stack, i, value = unpack(fmt, data, i, pos, tree)
+					new_fmt_index, new_stack, i, value = unpack(fmt, data, i, fmt_index, tree)
 					table.move(new_stack, 1, #new_stack, #stack + 1, stack)
 				end
 			end
 			
 			skip_rest = true
 		end
-		pos = new_pos
-	until not fmt:find("^,", pos - 1)
+		fmt_index = new_fmt_index
+	until not fmt:find("^,", fmt_index - 1)
+	
+	if tree and not key_found then
+		table.insert(stack, {})
+	end
 
-	return i, pos, value
+	return i, fmt_index, value
 end
 
 local pack_reg = "^[!0-9<>=xX bBhHlLjJTiIfdnczs]+"
@@ -284,28 +281,24 @@ function pack(fmt, fmt_index, args, arg_index)
 			local data_key = table.remove(keys, 1)
 			local count = table.remove(counts, 1)
 			local index = 1
-			local skip_rest
+			local skip_rest = (count == 0)
 			local key_found
-			
-			if count == 0 then
-				skip_rest = true
-			end
 			
 			fmt_index = fmt_index + 1
 			repeat
-				local fmt_key = fmt:match("^([^:,(){}[%]]+):", fmt_index)
-				if fmt_key then
-					fmt_index = fmt_index + #fmt_key + 1
-				end
-				
 				if not skip_rest then
+					local fmt_key = fmt:match("^([^:,(){}[%]]+):", fmt_index)
+					if fmt_key then
+						fmt_index = fmt_index + #fmt_key + 1
+					end
+					
 					key_found, index = check_key(data_key, fmt_key, index)
 				end
 				
 				local new_fmt_index
 				
 				if skip_rest or not key_found then
-					new_fmt_index = skip(fmt, fmt_index)
+					new_fmt_index = skip_node(fmt, fmt_index)
 				else
 					for _ = 1, count or 1 do
 						new_fmt_index, arg_index, new_value, data = pack(fmt, fmt_index, args, arg_index)
