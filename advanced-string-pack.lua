@@ -1,7 +1,7 @@
 local old_pack, old_unpack = string.pack, string.unpack
 local pack, unpack
 
-function skip_node(fmt, pos)
+local function skip_node(fmt, pos)
 	if fmt:find("^%}", pos) then
 		error("skip fail")
 	end
@@ -28,7 +28,7 @@ function skip_node(fmt, pos)
 	return pos
 end
 
-function skip_spaces(fmt, pos)
+local function skip_spaces(fmt, pos)
 	if fmt:find("^%s", pos) then
 		local _, pos = fmt:find("^%s+", pos)
 		return pos + 1
@@ -37,7 +37,7 @@ function skip_spaces(fmt, pos)
 	end
 end
 
-function check_key(data_key, fmt_key, index)
+local function check_key(data_key, fmt_key, index)
 	if not data_key then
 		return true, index + 1
 		
@@ -59,7 +59,7 @@ function check_key(data_key, fmt_key, index)
 	return false, index + 1
 end
 
-function unpack_node(fmt, data, i, fmt_index, stack, data_key, count, tree)
+local function unpack_node(fmt, data, i, fmt_index, stack, data_key, count, tree)
 	local index = 1
 	local skip_rest = (count == 0)
 	local key_found = false
@@ -192,7 +192,7 @@ function unpack(fmt, data, i, fmt_index, tree)
 			end
 			
 		else
-			error(("strange: %s %q"):format(fmt_index, fmt:sub(fmt_index)))
+			error(("strange: %d %q"):format(fmt_index, fmt:sub(fmt_index)))
 		end
 		
 		if new_value then
@@ -209,7 +209,7 @@ function unpack(fmt, data, i, fmt_index, tree)
 end
 
 
-function count_args(fmt)
+local function count_args(fmt)
 	local find_pos = 1
 	local count = 0
 	local ok
@@ -325,7 +325,7 @@ function pack(fmt, fmt_index, args, arg_index)
 			end
 			
 		else
-			error(("strange: %s %q"):format(fmt_index, fmt:sub(fmt_index)))
+			error(("strange: %d %q"):format(fmt_index, fmt:sub(fmt_index)))
 		end
 		
 		if new_value then
@@ -341,7 +341,7 @@ function pack(fmt, fmt_index, args, arg_index)
 	return fmt_index, arg_index, value or last_value, table.concat(buffer)
 end
 
-function flat(tbl, stack)
+local function flat(tbl, stack)
 	stack = stack or {}
 	for _, v in ipairs(tbl) do
 		if type(v) == "table" then
