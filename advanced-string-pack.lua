@@ -220,6 +220,15 @@ local function count_args(fmt)
 			count = count + 1
 		end
 	until not ok
+	
+	find_pos = 1
+	repeat
+		ok, find_pos = fmt:find("X", find_pos, true)
+		if ok then
+			find_pos = find_pos + 1
+			count = count - 1
+		end
+	until not ok
 	return count
 end
 
@@ -311,13 +320,14 @@ function pack(fmt, fmt_index, args, arg_index)
 			
 		elseif fmt:find(pack_reg, fmt_index) then
 			local fmt = fmt:match(pack_reg, fmt_index)
-			table.insert(buffer, old_pack(fmt, table.unpack(args, arg_index)))
+			local next_index = arg_index + count_args(fmt)
+			table.insert(buffer, old_pack(fmt, table.unpack(args, arg_index, next_index - 1)))
 			
 			if return_next_value then
 				new_value = args[arg_index]
 			end
 			
-			arg_index = arg_index + count_args(fmt)
+			arg_index = next_index
 			fmt_index = fmt_index + #fmt
 			
 			if not return_next_value then
